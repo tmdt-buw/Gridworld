@@ -1,11 +1,13 @@
 import json
 import hashlib
 import numpy as np
+from Visualizer import visualize
 import matplotlib
 import matplotlib.pyplot as plt
 
 grid_x = 10
 grid_y = 10
+states_to_vis = []
 
 
 def randPair(s, e):
@@ -57,58 +59,64 @@ def initGrid(random_player=False, random_mines=False, maze=False):
     return state
 
 
+
 def make_move(state, action):
     # need to locate player in grid
     # need to determine what object (if any) is in the new grid spot the player is moving to
     player_loc = findLoc(state, np.array([0, 0, 0, 1]))
+    death_loc = findLoc(state, np.array([0, 1, 0, 1]))
     walls = findLoc(state, np.array([0, 0, 1, 0]))
     goal = findLoc(state, np.array([1, 0, 0, 0]))
     mines = findLoc(state, np.array([0, 1, 0, 0]))
-    state = np.zeros((grid_x, grid_y, 4))
+    death_flag = False
+    if len(player_loc) == 0:
+        player_loc = death_loc
+        death_flag = True
 
-    # up (row - 1)
-    if action == 0:
-        # make move
-        new_loc = (player_loc[0] - 1, player_loc[1])
-        # force movement within the grid world
-        if (new_loc not in walls):
-            if ((np.array(new_loc) <= (grid_x-1, grid_y-1)).all() and (np.array(new_loc) >= (0, 0)).all()):
-                state[new_loc][3] = 1
+    if not death_flag:
+        state = np.zeros((grid_x, grid_y, 4))
+        # up (row - 1)
+        if action == 0:
+            # make move
+            new_loc = (player_loc[0] - 1, player_loc[1])
+            # force movement within the grid world
+            if (new_loc not in walls):
+                if ((np.array(new_loc) <= (grid_x-1, grid_y-1)).all() and (np.array(new_loc) >= (0, 0)).all()):
+                    state[new_loc][3] = 1
 
-    # down (row + 1)
-    elif action == 1:
-        new_loc = (player_loc[0] + 1, player_loc[1])
-        if (new_loc not in walls):
-            if ((np.array(new_loc) <= (grid_x-1, grid_y-1)).all() and (np.array(new_loc) >= (0, 0)).all()):
-                state[new_loc][3] = 1
+        # down (row + 1)
+        elif action == 1:
+            new_loc = (player_loc[0] + 1, player_loc[1])
+            if (new_loc not in walls):
+                if ((np.array(new_loc) <= (grid_x-1, grid_y-1)).all() and (np.array(new_loc) >= (0, 0)).all()):
+                    state[new_loc][3] = 1
 
-    # left (column - 1)
-    elif action == 2:
-        new_loc = (player_loc[0], player_loc[1] - 1)
-        if (new_loc not in walls):
-            if ((np.array(new_loc) <= (grid_x-1, grid_y-1)).all() and (np.array(new_loc) >= (0, 0)).all()):
-                state[new_loc][3] = 1
+        # left (column - 1)
+        elif action == 2:
+            new_loc = (player_loc[0], player_loc[1] - 1)
+            if (new_loc not in walls):
+                if ((np.array(new_loc) <= (grid_x-1, grid_y-1)).all() and (np.array(new_loc) >= (0, 0)).all()):
+                    state[new_loc][3] = 1
 
-    # right (column + 1)
-    elif action == 3:
-        new_loc = (player_loc[0], player_loc[1] + 1)
-        if (new_loc not in walls):
-            if ((np.array(new_loc) <= (grid_x-1, grid_y-1)).all() and (np.array(new_loc) >= (0, 0)).all()):
-                state[new_loc][3] = 1
+        # right (column + 1)
+        elif action == 3:
+            new_loc = (player_loc[0], player_loc[1] + 1)
+            if (new_loc not in walls):
+                if ((np.array(new_loc) <= (grid_x-1, grid_y-1)).all() and (np.array(new_loc) >= (0, 0)).all()):
+                    state[new_loc][3] = 1
 
-    new_player_loc = findLoc(state, np.array([0, 0, 0, 1]))
-    if (not new_player_loc):
-        state[player_loc] = np.array([0, 0, 0, 1])
+        new_player_loc = findLoc(state, np.array([0, 0, 0, 1]))
+        if (not new_player_loc):
+            state[player_loc] = np.array([0, 0, 0, 1])
 
-    # re-place mine
-    for i_mine in mines:
-        state[i_mine][1] = 1
-    # re-place wall
-    for i_wall in walls:
-        state[i_wall][2] = 1
-    # re-place goal
-    state[goal][0] = 1
-
+        # re-place mine
+        for i_mine in mines:
+            state[i_mine][1] = 1
+        # re-place wall
+        for i_wall in walls:
+            state[i_wall][2] = 1
+        # re-place goal
+        state[goal][0] = 1
     return state
 
 
@@ -139,11 +147,13 @@ def getReward(state):
 
 # display GridWorld
 def dispGrid(state):
+    states_to_vis.append(dispGrid(state))
     grid = np.zeros((grid_x, grid_y), dtype=np.unicode_)
     player_loc = findLoc(state, np.array([0, 0, 0, 1]))
     walls = findLoc(state, np.array([0, 0, 1, 0]))
     goal = findLoc(state, np.array([1, 0, 0, 0]))
     mines = findLoc(state, np.array([0, 1, 0, 0]))
+    death = findLoc(state, np.array([0, 1, 0, 1]))
     for i in range(0, grid_x):
         for j in range(0, grid_y):
             grid[i, j] = ' '
@@ -158,6 +168,8 @@ def dispGrid(state):
     if mines:
         for i_mine in mines:
             grid[i_mine] = 'X' # mine
+    if death:
+        grid[goal] = 'D' # goal
 
     return grid
 
@@ -243,28 +255,68 @@ def test_agent(lookup, random_player, random_mines, maze):
     return win, solution
 
 
+random_player = False
+random_mines = True
+maze = True
+
+states = list()
+states.append(initGrid(random_player, random_mines, maze))
+
+
+def bewege_oben():
+    states.append(make_move(states[len(states)-1], 0))
+
+
+def bewege_unten():
+    states.append(make_move(states[len(states)-1], 1))
+
+
+def bewege_links():
+    states.append(make_move(states[len(states)-1], 2))
+
+
+def bewege_rechts():
+    states.append(make_move(states[len(states)-1], 3))
+
+
+def zeigen():
+    visualize(states)
+
+
 if __name__ == '__main__':
 
-    flag_train_agent = False
-    flag_test_agent = True
+    # flag_train_agent = False
+    # flag_test_agent = True
+    #
+    # # difficulty
+    # random_player = True
+    # random_mines = True
+    # maze = True
+    #
+    # if flag_train_agent:
+    #     lookup = dict()
+    #     train_agent(5000, lookup, random_player, random_mines, maze)
+    #     with open('lookup.json', 'w') as f:
+    #         json.dump(lookup, f)
+    #
+    # if flag_test_agent:
+    #     with open('lookup.json', 'r') as f:
+    #         lookup = json.load(f)
+    #
+    #     wins = 0
+    #     for _ in range(1):
+    #         win, sol = test_agent(lookup, random_player, random_mines, maze)
+    #         wins += win
+    #     print('achieved', wins, 'wins')
+    #
+    # visualize(states_to_vis)
 
-    # difficulty
-    random_player = False
-    random_mines = True
-    maze=True
 
-    if flag_train_agent:
-        lookup = dict()
-        train_agent(5000, lookup, random_player, random_mines, maze)
-        with open('lookup.json', 'w') as f:
-            json.dump(lookup, f)
+    bewege_unten()
+    bewege_unten()
+    bewege_oben()
+    bewege_rechts()
+    bewege_rechts()
+    bewege_links()
 
-    if flag_test_agent:
-        with open('lookup.json', 'r') as f:
-            lookup = json.load(f)
-
-        wins = 0
-        for _ in range(1):
-            win, sol = test_agent(lookup, random_player, random_mines, maze)
-            wins += win
-        print('achieved', wins, 'wins')
+    zeigen()
