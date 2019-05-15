@@ -128,7 +128,7 @@ class VisualizerApp(App):
 
     def build(self):
         self.game_visualizer = GameVisualizer(self.states)
-        Clock.schedule_interval(self.game_visualizer.vis_states, 1)
+        Clock.schedule_interval(self.game_visualizer.vis_states, 0.8)
         return self.game_visualizer
 
 
