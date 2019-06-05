@@ -6,26 +6,19 @@ from Aktionen import inhalt, init_gridworld, zeigen, wenn_dann, spieler_position
 
 init_gridworld(random_player=False, random_mines=False, maze=False)
 
-
-''' 
+'''' 
 Hier kommt euer Code
 '''
 
-bewege_rechts()
-bewege_links()
 
-wenn_dann(ist_unten_frei, bewege_unten)
-wenn_dann(ist_unten_frei, bewege_unten)
-wenn_dann(ist_unten_frei, bewege_unten)
-wenn_dann(ist_unten_frei, bewege_unten)
-wenn_dann(ist_unten_frei, bewege_unten)
-
-
+for i in range(10):
+    wenn_dann(ist_rechts_frei, bewege_rechts)
 
 
 ''' 
 Code Ende
 '''
+
 
 zeigen()
 

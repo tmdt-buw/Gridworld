@@ -132,18 +132,17 @@ class GridWorld():
             return locs
 
 
-    def getReward(self, state):
+    def getReward(self, state, step):
         self.states.append(state)
         player_loc = self.getLoc(state, 3)
         mines = self.getLoc(state, 1)
         goal = self.getLoc(state, 0)
-        if (player_loc in mines):
-            return -50
+        if (player_loc in mines) or step >= 30:
+            return -100
         elif (player_loc == goal):
-            return 100
+            return 10
         else:
-            return -0.1
-            # return -(1/10)*((player_loc[0]-goal[0])**2+(player_loc[1]-goal[1])**2)**(1/2)
+            return -(1/20)*((player_loc[0]-goal[0])**2+(player_loc[1]-goal[1])**2)**(1/2)
 
 
     # display GridWorld
@@ -174,7 +173,10 @@ class GridWorld():
         return grid
 
 
-    def zeigen(self):
-        from visualizer_lite import visualize
-        visualize(self.states)
+    def zeigen(self, agent=False, pause=0.05):
+        from RL_Agent_Lookup_Reduced.visualizer_lite_vektorfeld import visualize, toggle_qvals
+        # from visualizer_lite_qvals import visualize, toggle_qvals
+        if agent is not False:
+            toggle_qvals(agent)
+        visualize(self.states, pause)
         del visualize
