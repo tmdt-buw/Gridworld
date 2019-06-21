@@ -2,7 +2,6 @@ import hashlib
 import json
 from GridWorld import GridWorld
 import numpy as np
-import Regler as rg
 import copy
 
 from matplotlib import pyplot as plt
@@ -23,7 +22,6 @@ model = None
 def init_gridworld(random_player=False, random_mines=False, maze=False):
     global grid_world
     grid_world = GridWorld(random_player, random_mines, maze)
-    rg.grid_world = grid_world
 
 class NeuralNetwork(nn.Module):
 
@@ -160,13 +158,13 @@ def agent(random_player, random_mines, maze, train=False, load_model=None, save_
 
     replay_memory = []
 
+    # 1) Entfernen oder 2) Auslagern in Methode "initialization"
     action = torch.zeros([model.number_of_actions], dtype=torch.float32)
     action[1] = 1
     state_data, reward, terminal = frame_step(action, 0)
     add_reward_to_plot(reward)
     state_data = state_to_tensor(state_data)
     state = state_data
-
     epsilon = model.initial_epsilon
 
     iteration = 1
@@ -175,44 +173,40 @@ def agent(random_player, random_mines, maze, train=False, load_model=None, save_
     while iteration < model.number_of_iterations:
         print('------------------ Iteration: {} ------------------'.format(iteration))
 
+        if torch.cuda.is_available():
+            action_index = action_index.cuda()
+
         output = model(state)[0]
 
-        action = torch.zeros([model.number_of_actions], dtype=torch.float32)
-        if torch.cuda.is_available():
-            action = action.cuda()
-
-        rand_num = np.random.random(1)
-
+        # Aufgabe: Get Action Index
         if train:
-            random_action = rand_num < epsilon
+            random_action = np.random.random(1) < epsilon
         else:
             random_action = False
 
         if random_action:
             print("Performed random action!")
+            action_index = torch.randint(model.number_of_actions, torch.Size([]), dtype=torch.int)
         else:
-            print('Model chose action...')
+            print('Model selects action!')
+            action_index = torch.argmax(output)
 
-        action_index = [torch.randint(model.number_of_actions, torch.Size([]), dtype=torch.int)
-                        if random_action
-                        else torch.argmax(output)][0]
-
+        action = torch.zeros([model.number_of_actions], dtype=torch.float32)
         if torch.cuda.is_available():
-            action_index = action_index.cuda()
-
+            action = action.cuda()
         action[action_index] = 1
 
-        state_data_1, reward, terminal = frame_step(action, steps)
+
+        state_data_next, reward, terminal = frame_step(action, steps)
         add_reward_to_plot(reward)
-        state_data_1 = state_to_tensor(state_data_1)
-        state_1 = state_data_1
+        state_next = state_to_tensor(state_data_next)
 
         action = action.unsqueeze(0)
         reward = torch.from_numpy(np.array([reward], dtype=np.float32)).unsqueeze(0)
 
         if train:
 
-            replay_memory.append((state, action, reward, state_1, terminal))
+            replay_memory.append((state, action, reward, state_next, terminal))
 
             if len(replay_memory) > model.replay_memory_size:
                 replay_memory.pop(0)
@@ -225,18 +219,19 @@ def agent(random_player, random_mines, maze, train=False, load_model=None, save_
             state_batch = torch.cat(tuple(d[0] for d in minibatch))
             action_batch = torch.cat(tuple(d[1] for d in minibatch))
             reward_batch = torch.cat(tuple(d[2] for d in minibatch))
-            state_1_batch = torch.cat(tuple(d[3] for d in minibatch))
+            state_next_batch = torch.cat(tuple(d[3] for d in minibatch))
 
             if torch.cuda.is_available():
                 state_batch = state_batch.cuda()
                 action_batch = action_batch.cuda()
                 reward_batch = reward_batch.cuda()
-                state_1_batch = state_1_batch.cuda()
+                state_next_batch = state_next_batch.cuda()
 
-            output_1_batch = model(state_1_batch)
+            # Aufgabe: ANN training
+            output_next_batch = model(state_next_batch)
 
             y_batch = torch.cat(tuple(reward_batch[i] if minibatch[i][4]
-                                      else reward_batch[i] + model.gamma * torch.max(output_1_batch[i])
+                                      else reward_batch[i] + model.gamma * torch.max(output_next_batch[i])
                                       for i in range(len(minibatch))))
             output_q_value = model(state_batch)
             q_value = torch.sum(output_q_value* action_batch, dim=1)
@@ -246,13 +241,12 @@ def agent(random_player, random_mines, maze, train=False, load_model=None, save_
             y_batch = y_batch.detach()
 
             loss = criterion(q_value, y_batch)
-
             loss.backward()
             optimizer.step()
 
-        state = state_1
+        state = state_next
 
-        print('step: {}\naction: {}\nreward: {}\n'.format(steps, action_index.detach().numpy().item(), reward))
+        print('step: {}\naction: {}\nreward: {}\n'.format(steps, action_index.detach().cpu().numpy().item(), reward))
         steps += 1
 
         if terminal:

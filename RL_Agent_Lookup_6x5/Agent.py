@@ -2,7 +2,6 @@ import hashlib
 import json
 from GridWorld import GridWorld
 import numpy as np
-import Regler as rg
 import copy
 
 grid_world = GridWorld()
@@ -10,9 +9,9 @@ grid_world = GridWorld()
 def init_gridworld(random_player=False, random_mines=False, maze=False):
     global grid_world
     grid_world = GridWorld(random_player, random_mines, maze)
-    rg.grid_world = grid_world
 
 agent = False
+
 def zeigen():
     grid_world.zeigen(agent=agent, agent_type='lookup')
 
@@ -31,6 +30,7 @@ def train_agent(epochs, lookup, random_player, random_mines, maze, file_path):
         step = 0
         # while game still in progress
         while(status == 1):
+            # State Hash Berechnung in eine Methode get_state_hash_string(state)
             state.flags.writeable = False
             state_hash = str(hashlib.md5(bytes(state)).hexdigest())
             state.flags.writeable = True
@@ -111,7 +111,11 @@ def test_agent(lookup, random_player, random_mines, maze):
             break
     return win, solution
 
-def q_values_aus_lookup(lookup, state, pos):
+
+def get_q_values_from_lookup(lookup, state, pos):
+    '''
+    Used for visualization of vector field.
+    '''
     state_copy = copy.deepcopy(state)
     player_loc = grid_world.getLoc(state_copy, 3)
     state_copy[player_loc][3] = 0
