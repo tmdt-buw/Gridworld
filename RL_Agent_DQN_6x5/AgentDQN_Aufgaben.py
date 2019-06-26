@@ -220,21 +220,15 @@ def agent(random_player, random_mines, maze, train=False, load_model=None, save_
 
         # Aufgabe: Get Action Index
         # -----------------------Musterloesung----------------------------
-        if train:
-            random_action = np.random.random(1) < epsilon
-        else:
-            random_action = False
 
-        if random_action:
-            print("Performed random action!")
-            action_index = torch.randint(model.number_of_actions, torch.Size([]), dtype=torch.int)
-        else:
-            print('Model selects action!')
-            action_index = torch.argmax(output)
 
-        action = torch.zeros([model.number_of_actions], dtype=torch.float32)
-        if torch.cuda.is_available():
-            action = action.cuda()
+
+
+
+
+
+
+
         # -----------------------------------------------------------------
 
         action[action_index] = 1
@@ -255,21 +249,15 @@ def agent(random_player, random_mines, maze, train=False, load_model=None, save_
 
             # Aufgabe: ANN training
             # -----------------------Musterloesung----------------------------
-            output_next_batch = model(state_next_batch)
 
-            y_batch = torch.cat(tuple(reward_batch[i] if minibatch[i][4]
-                                      else reward_batch[i] + model.gamma * torch.max(output_next_batch[i])
-                                      for i in range(len(minibatch))))
-            output_q_value = model(state_batch)
-            q_value = torch.sum(output_q_value * action_batch, dim=1)
 
-            optimizer.zero_grad()
 
-            y_batch = y_batch.detach()
 
-            loss = criterion(q_value, y_batch)
-            loss.backward()
-            optimizer.step()
+
+
+
+
+
             # -----------------------------------------------------------------
 
         state = state_next
