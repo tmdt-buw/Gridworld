@@ -15,6 +15,13 @@ agent = False
 def zeigen():
     grid_world.zeigen(agent=agent, agent_type='lookup')
 
+def get_state_hash_string(state):
+    state.flags.writeable = False
+    state_hash = str(hashlib.md5(bytes(state)).hexdigest())
+    state.flags.writeable = True
+
+    return state_hash
+
 def train_agent(epochs, lookup, random_player, random_mines, maze, file_path):
     global agent
 
@@ -31,9 +38,8 @@ def train_agent(epochs, lookup, random_player, random_mines, maze, file_path):
         # while game still in progress
         while(status == 1):
             # State Hash Berechnung in eine Methode get_state_hash_string(state)
-            state.flags.writeable = False
-            state_hash = str(hashlib.md5(bytes(state)).hexdigest())
-            state.flags.writeable = True
+            state_hash = get_state_hash_string(state)
+
             if state_hash not in lookup.keys():
                 lookup[state_hash] = [0, 0, 0, 0]
             qval = lookup[state_hash]
@@ -43,9 +49,7 @@ def train_agent(epochs, lookup, random_player, random_mines, maze, file_path):
                 action = (np.argmax(qval))
             # Take action, observe new state S'
             new_state = grid_world.make_move(state, action)
-            new_state.flags.writeable = False
-            new_state_hash = str(hashlib.md5(bytes(new_state)).hexdigest())
-            new_state.flags.writeable = True
+            new_state_hash = get_state_hash_string(new_state)
             if new_state_hash not in lookup.keys():
                 lookup[new_state_hash] = [0, 0, 0, 0]
             newQ = lookup[new_state_hash]
@@ -85,9 +89,7 @@ def test_agent(lookup, random_player, random_mines, maze):
     state = grid_world.states[0]
     status = 1
     while status == 1:
-        state.flags.writeable = False
-        state_hash = str(hashlib.md5(bytes(state)).hexdigest())
-        state.flags.writeable = True
+        state_hash = get_state_hash_string(state)
         if state_hash not in lookup.keys():
             print('taking random action...')
             action = np.random.randint(0, 4)
@@ -121,9 +123,7 @@ def get_q_values_from_lookup(lookup, state, pos):
     state_copy[player_loc][3] = 0
     state_copy[pos[1], pos[0]][3] = 1
 
-    state_copy.flags.writeable = False
-    state_hash = str(hashlib.md5(bytes(state_copy)).hexdigest())
-    state_copy.flags.writeable = True
+    state_hash = get_state_hash_string(state_copy)
     if state_hash not in lookup.keys():
         lookup[state_hash] = [0, 0, 0, 0]
     qval = lookup[state_hash]
